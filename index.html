@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Hostel AI Ultimate</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI';
+    background: black;
+    color: white;
+    overflow: hidden;
+}
+
+/* Animated background */
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+/* Navbar */
+.navbar {
+    padding: 15px;
+    text-align: center;
+    font-size: 22px;
+    background: rgba(255,255,255,0.05);
+}
+
+/* Layout */
+.container {
+    display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    height: 100vh;
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+}
+
+.menu {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.menu:hover {
+    background: #00f5a0;
+    color: black;
+}
+
+/* Content */
+.content {
+    flex: 1;
+    padding: 20px;
+}
+
+/* Cards */
+.card {
+    background: rgba(255,255,255,0.08);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+/* Inputs */
+input {
+    width: 90%;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
+}
+
+/* Button */
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #00f5a0;
+    cursor: pointer;
+}
+
+/* Student grid */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+    gap: 15px;
+}
+
+.student {
+    background: rgba(255,255,255,0.1);
+    padding: 15px;
+    border-radius: 15px;
+    text-align: center;
+}
+
+/* Chat */
+.chat {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 250px;
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<h1>🚀 Hostel Backend UI</h1>
+
+<!-- Get Data -->
+<button onclick="getData()">Get Data</button>
+<p id="result"></p>
+
+<hr>
+
+<!-- Upload -->
+<h2>Upload File</h2>
+
+<input type="file" id="fileInput">
+<button onclick="uploadFile()">Upload</button>
+
+<p id="uploadStatus"></p>
+
+</body>
+
+<script>
+function getData() {
+    fetch("https://hostel-backend-jhpe.onrender.com/")
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("result").innerText = JSON.stringify(data);
+    })
+    .catch(error => {
+        document.getElementById("result").innerText = "Error: " + error;
+    });
+}
+
+/* 👇 ADD THIS PART */
+async function uploadFile() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        document.getElementById("uploadStatus").innerText = "Select a file!";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch("https://hostel-backend-jhpe.onrender.com/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await response.json();
+        document.getElementById("uploadStatus").innerText = "Uploaded: " + result.filename;
+    } catch (error) {
+        document.getElementById("uploadStatus").innerText = "Error: " + error;
+    }
+}
+</script>
+</div>
+
+<div class="container">
+
+<div class="sidebar">
+<div class="menu" onclick="loadStudents()">📊 Students</div>
+</div>
+
+<div class="content">
+
+<!-- Add Student -->
+<div class="card">
+<h2>Add Student</h2>
+<input id="name" placeholder="Name">
+<input id="email" placeholder="Email">
+<input id="room" placeholder="Room">
+<button onclick="addStudent()">Add</button>
+</div>
+
+<!-- Students -->
+<div class="card">
+<h2>Students</h2>
+<div class="grid" id="students"></div>
+</div>
+
+<!-- Chart -->
+<div class="card">
+<h2>Room Chart</h2>
+<canvas id="chart"></canvas>
+</div>
+
+</div>
+</div>
+
+<!-- Chat -->
+<div class="chat">
+<div id="chatbox"></div>
+<input id="msg">
+<button onclick="send()">Send</button>
+</div>
+
+<script>
+const BASE_URL = "https://your-app.onrender.com"; // 🔴 replace
+
+// Add Student
+function addStudent(){
+fetch(`${BASE_URL}/add-student`,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+name:name.value,
+email:email.value,
+room_no:parseInt(room.value)
+})
+}).then(()=>loadStudents());
+}
+
+// Load Students
+function loadStudents(){
+fetch(`${BASE_URL}/get-students`)
+.then(res=>res.json())
+.then(data=>{
+students.innerHTML="";
+let rooms={};
+
+data.data.forEach(s=>{
+let div=document.createElement("div");
+div.className="student";
+div.innerHTML=`<h3>${s.name}</h3><p>Room ${s.room_no}</p>`;
+students.appendChild(div);
+
+rooms[s.room_no]=(rooms[s.room_no]||0)+1;
+});
+
+drawChart(rooms);
+});
+}
+
+// Chart
+function drawChart(data){
+new Chart(document.getElementById("chart"),{
+type:"bar",
+data:{
+labels:Object.keys(data),
+datasets:[{label:"Students",data:Object.values(data)}]
+}
+});
+}
+
+// Chat (simple)
+function send(){
+let m=msg.value;
+chatbox.innerHTML+=`<div>You: ${m}</div>`;
+chatbox.innerHTML+=`<div>Bot: OK 👍</div>`;
+msg.value="";
+}
+
+// Background particles
+const c=document.getElementById("bg");
+const ctx=c.getContext("2d");
+c.width=window.innerWidth;
+c.height=window.innerHeight;
+
+let p=[];
+for(let i=0;i<100;i++){
+p.push({x:Math.random()*c.width,y:Math.random()*c.height});
+}
+
+function draw(){
+ctx.clearRect(0,0,c.width,c.height);
+ctx.fillStyle="#00f5a0";
+p.forEach(a=>{
+ctx.fillRect(a.x,a.y,2,2);
+a.y+=0.5;
+if(a.y>c.height)a.y=0;
+});
+requestAnimationFrame(draw);
+}
+draw();
+
+</script>
+
+</body>
+</html>
